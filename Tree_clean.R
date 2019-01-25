@@ -19,7 +19,7 @@ dev.off()
 rm(list = ls())
 
 ############################################################
-################## DATA IMPORT##############################
+################## Data import##############################
 ############################################################
 #PLEASE: Adapt the variable names according to the needs main dataset is called "tree"
 
@@ -37,7 +37,7 @@ for(i in list.files(pattern = ".csv")) {
 
 tree$tree_height
 ############################################################
-################## DATA Exploration ########################
+################## Data exploration ########################
 ############################################################
 #1.Check the marginals
 p = ggplot(tree, aes(x=diameter,y=total_height)) + 
@@ -77,7 +77,7 @@ qplot(tree_clean$total_height,
 # tree_clean<-tree_clean[!(tree_clean$total_height>45),]
 
 ############################################################
-################## DATA Validation #########################
+################## DATA validation #########################
 ############################################################
 # How many suspect values there are in our datasets?
 # We check also non dbh and non height values starting by:
@@ -148,8 +148,9 @@ p = ggplot(Suspect_values_ratio, aes(x=diameter,y=total_height)) +
 p
 
 
-
-
+###############################################
+############ Data cross validation ############
+###############################################
 #####################################################################################
 ############### Check and clean the tree_clean dataset before continuing ############
 #####################################################################################
