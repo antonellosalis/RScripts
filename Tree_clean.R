@@ -1,6 +1,6 @@
 ##############################################################
 # 
-# Dataclean script to identify errors and outliars
+# Dataclean script to identify errors and outliars in NFI datasets
 # R Training
 # 2019
 #                      
@@ -21,8 +21,9 @@ rm(list = ls())
 ############################################################
 ################## DATA IMPORT##############################
 ############################################################
+#PLEASE: Adapt the variable names according to the needs main dataset is called "tree"
 
-path<-setwd("/home/antonello/R_projects/NFI_Uganda/Data/NFI/nbsData/")
+path<-setwd("FULL PATH HERE")
 path
 
 
