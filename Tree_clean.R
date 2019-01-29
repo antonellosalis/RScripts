@@ -1,6 +1,6 @@
-##############################################################
+#######################################################################
 # 
-# Dataclean script to identify errors and outliars in NFI datasets
+# Data cleaning script to identify errors and outliars in NFI datasets
 # R Training
 # 2019
 #                      
@@ -9,7 +9,7 @@
 # antonellosalis@gmail.com
 # last version 20190122
 #
-###############################################################
+#######################################################################
 
 # library(ggExtra)
 library(ggplot2)
