@@ -1,48 +1,40 @@
 ##############################################################
 # 
 # Corplot script to diplay confusion matrices
-# R Training, Ethiopia
-# 2017
-#                      
+#                       
 # Antonello Salis
 # antonello.salis@fao.org
 # antonellosalis@gmail.com
-# last version 20170218
+# last version 20190217
 #
 ###############################################################
 
-
-setwd("/home/antonello/R_projects/AA/")
 require(corrplot)
-M<- read.csv("Data/Ethiopia_Accuracy_Matrix_4.csv", header = F)
-M
+M<- read.csv("/home/antonello/R_projects/NFI_Uganda/Data/LULC/LULC2017_Uganda.csv", header = F)
+Classes <-as.vector(read.csv("/home/antonello/R_projects/NFI_Uganda/Data/LULC/Classes.csv", header = F))
+wrap.it <- function(x, len)
+{
+  sapply(x, function(y) paste(strwrap(y, len),
+                              collapse = "\n"),
+         USE.NAMES = FALSE)
+}
 
-Magg<-read.csv("Data/Ethiopia_Accuracy_Matrix_Aggregate_1.csv", header = F)
+
+# Call this function with a list or vector
+wrap.labels <- function(x, len)
+{
+  if (is.list(x))
+  {
+    lapply(x, wrap.it, len)
+  } else {
+    wrap.it(x, len)
+  }
+}
+
+Classes<-wrap.labels(Classes,20)
 
 M<-as.matrix(M)
-rownames(M) <- c("agriculture","grassland","scrubland","shrubland","open_woodland","dense_woodland","forest","bareland","builtup","afroapline","plantation","saltpan","wetland","bamboo","riverine","water")
-colnames(M) <- c("agriculture","grassland","scrubland","shrubland","open_woodland","dense_woodland","forest","bareland","builtup","afroapline","plantation","saltpan","wetland","bamboo","riverine","water")
-corrplot(M, method = "circle",cl.lim = c(0, 1))
-
-corrplot(M, method = "number")
-corrplot(M, method = "number",cl.lim = c(0, 1))
-corrplot(M, method = "color",cl.lim = c(0, 1))
-
-
-
-Magg<-as.matrix(Magg)
-rownames(Magg) <- c("agriculture","grassland","shrubland","forest","built up","bareland","saltpan","water body"
-)
-colnames(Magg) <-  c("agriculture","grassland","shrubland","forest","built up","bareland","saltpan","water body"
-)
-corrplot(Magg, method = "color",cl.lim = c(0, 1))
-corrplot(Magg, method = "number",cl.lim = c(0, 1))
-
-M1<- read.csv("Data/Ethiopia_Accuracy_Matrix_5.csv", header = F)
-M1<-as.matrix(M1)
-rownames(M1) <- c("agriculture","grassland","scrubland","shrubland","open_woodland","dense_woodland","forest","bareland","builtup","afroapline","plantation","saltpan","wetland","bamboo","riverine","water")
-colnames(M1) <- c("agriculture","grassland","scrubland","shrubland","open_woodland","dense_woodland","forest","bareland","builtup","afroapline","plantation","saltpan","wetland","bamboo","riverine","water")
-corrplot(M1, method = "number",cl.lim = c(0, 1))
-corrplot(M1, method = "color",cl.lim = c(0, 1))
-
-
+M<-cor(M)
+colnames(M) <- Classes$V1
+rownames(M) <- Classes$V1
+corrplot(M, method = "color",cl.lim = c(min(M), max(M)), tl.col = "black", tl.srt = 45)
