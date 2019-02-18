@@ -55,8 +55,9 @@ ggplot(LULCData,
   axis.text.x = element_text(size = 8, face = "bold"),   axis.text.y = element_blank())
 
 
-# 3rd Using another package than networkD3 package
+# 3rd Graphic using the networkD3 package
 ##################################################
+#This method implies the creation of two separate datasets: "nodes" and "links"
 LULC2014<-unique(LULCData$LULC_2014)
 LULC2016<-unique(LULCData$LULC_2016)
 nodes<-data.frame(node = c (0:(length(LULC2014)+length(LULC2016)-1)), name = c(as.character(LULC2014),as.character(LULC2016)))
