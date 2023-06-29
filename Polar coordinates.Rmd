@@ -1,0 +1,261 @@
+---
+title: "Polar Coordinates application in Forest Inventories"
+author: "Antonello Salis \n\n antonello.salis@fao.org \n\n antonellosalis@gmail.com"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+I've created a number of scripts to help me analyze forest inventory data.
+
+In this example I tried to solve this problem: "If I have circular sample units, how can I measure/estimate the sub-areas inside?".
+
+Let's imagine that the ground falls between the forest and a road (like 60% forest and 40% road). Obviously the fastest way is to estimate surfaces visually, but that's not very accurate, right? Especially if the field team doesn't have enough experience!
+
+In this exercise I propose the use of polar coordinates to identify areas. polar coordinates are taken on the field simply by identifying the object to be positioned, from the center of the track, measuring its angle (azimuth) from the North and the distance (from the center). This is quite fast and accurate, but we need at least this field-gathered information:
+
+1- A dataset containing: an identifier "or ID number" of the sampling unit (we have called the sampling unit "EU" in this dataset), an identifier for the area within the graph (we have called the surfaces, "CT").We also need a point inside the surface, don't we? I need to be sure that the surface is identified by 1 point inside (defined by azimuth and distance).
+
+2- A dataset including the boundaries between the surfaces:
+
+Each surface can represent the entire UE (in this case the Boundary is simply the limit of the circular sampling unit) or just a portion.
+
+If the Area represents only a part of the sampling unit then the boundaries of the areas are defined by the intersection of 1 or 2 lines with the limits of the circular sampling unit). Each line is defined by at least 2 points, the points of intersection with the circular sampling unit.
+
+3- A Dataset (optional) containing information about the trees in the sampling unit, in this case it includes the species, the position in polar coordinates, the Species, the DBH and also the CT. This will allow you to confirm that each tree is assigned to a specific area (like an LU for example) and also to verify that the boundaries are correct.
+
+The following example shows the procedure step by step.
+
+## Importing the datasets
+
+We start by importing the 3 Datasets (Available here: [https://github.com/antonellosalis/RScripts/tree/master/Data):](https://github.com/antonellosalis/RScripts/tree/master/Data):)
+
+1.  CT Dataset: it includes the Land Cover and position (in polar coordinates) for each UE (Sample Unit)
+2.  Boundaries Dataset: it includes the boundary between the Land Cover Area within the UE (in polar coordinates).
+3.  Trees Dataset: it includes some data related to trees for each LC, it includes DBH, Specie and position (in polar coordinates)
+
+```{r import}
+CT<-read.csv("/home/antonello/RWorkspace/IFPON/Data/Test_Reports_Fake_Data/Data_sample4TestCT.csv", header = T)
+
+Boundaries<-read.csv("/home/antonello/RWorkspace/IFPON/Data/Test_Reports_Fake_Data/Data_sample4TestCT_Lines.csv", header = T)
+
+Trees<-read.csv("/home/antonello/RWorkspace/IFPON/Data/Test_Reports_Fake_Data/Data_sample4TestCT_Arbres.csv", header = T)
+```
+
+## Definition of the UE
+
+We define the UE in polar coordinates, because this is the system adopted to define the position of each entity in the field.
+
+Each Sampling Unit is composed by a circle of 18 m with a nested plot of 6 m.
+
+```{r}
+#We start every script by adding new libraries (when needed)
+library(ggplot2)
+library(ggforce)
+# Graphic With polar coordinates
+ggplot(x = 360, y = 18) + 
+  geom_hline(aes(yintercept = 6)) +
+  geom_hline(aes(yintercept = 18)) +
+  scale_x_continuous(limits = c(0, 360),
+                     breaks = seq(0, 360, 45)) +
+  scale_y_continuous(limits = (c(0, 18)),
+                     breaks = (seq(0, 6, 18))) +
+  coord_polar(theta = "x")
+
+```
+
+The same representation is done in cartesian coordinates. Cartesian coordinates are easier to calculate surfaces. All the polar coordinates are converted in cartesian.
+
+But why then we do not use directly cartesian?
+
+Because for the cartesian we will need to do more measures and more precise, with the polar coordinates I just need a distance and an angle for each point.
+
+```{r}
+
+ggplot(x = 18, y = 18) + 
+  xlim(-22,22)+
+  ylim(-22,22)+
+  #this is to make the grafic square
+  theme(aspect.ratio = 1)+
+  #adding the circle
+  geom_circle(aes(x0=0, y0=0, r = 18), alpha=0.5, fill="yellow", linetype="dotted",linewidth=0.5,inherit.aes = FALSE)+
+  geom_circle(aes(x0=0, y0=0, r = 6), alpha=0.5, fill="grey", linetype="dashed",linewidth=0.5,inherit.aes = FALSE)
+```
+
+## Plotting the trees positions
+
+In this example we plot the position of the trees in 4 Sampling Units.
+
+We plot the trees positions and essential variables by using the polar coordinates (to verify the position):
+
+```{r}
+library(useful)
+library(tibble)
+Trees<-as_tibble(data.frame(Trees))
+# Graphic With polar coordinates
+ggplot(aes(x = Azimut, y = Distance), data = Trees) + 
+  geom_hline(aes(yintercept = 6)) +
+  geom_hline(aes(yintercept = 18)) +
+  scale_x_continuous(limits = c(0, 360),
+                     breaks = seq(0, 360, 45)) +
+  scale_y_continuous(limits = (c(0, 18)),
+                     breaks = (seq(0, 6, 18))) +
+  geom_point(aes(size=DBH, fill=factor(Specie)),shape =21,alpha = 0.7)+
+  coord_polar(theta = "x")+
+  facet_wrap(~UE)
+```
+
+To have the same plot done in cartesian coordinates we need to transform the coordinates:
+
+```{r}
+library(useful)
+library(magrittr)
+library(tidyverse)
+# Tranforming Polar coordinates to Cartesian with pipes
+Trees<-Trees %>%
+                mutate(Theta = 2*pi*Azimut/360,
+                       xd = pol2cart(Distance, Theta, degrees=F)[["y"]],
+                       yd = pol2cart(Distance, Theta, degrees=F)[["x"]]             )
+```
+
+## Plot in cartesian coordinates
+
+The same trees are here represented in cartesian coordinates. Can you see a difference? In the plot 126 a tree is excluded in the polar system because is out of the 18 meters.
+
+```{r}
+ggplot(aes(x = xd, y = yd), data = Trees) + 
+  xlim(-22,22)+
+  ylim(-22,22)+
+  #this is to have equal ratio (vertical and horizontal)
+  theme(aspect.ratio = 1)+
+  #adding the circle (UE)
+  geom_circle(aes(x0=0, y0=0, r = 18), alpha=0.05, fill="yellow", linetype="dotted",size=0.5,inherit.aes = FALSE)+
+  geom_circle(aes(x0=0, y0=0, r = 6), alpha=0.05, fill="grey", linetype="dashed",size=0.5,inherit.aes = FALSE)+
+    #plotting the points
+    geom_point(aes(size=DBH, fill=factor(Specie)),shape =21,alpha = 0.7)+
+  facet_wrap(~UE)
+```
+
+## Plotting CT areas
+
+To plot CT Areas we need to:
+
+1.  transform all the polar coordinates in cartesian coordinates:
+
+    ```{r}
+    Boundariesxy<-as_tibble(Boundaries) %>%
+      mutate(Theta = 2*pi*Azimut/360,
+             x = pol2cart(Distance, Theta, degrees=F)[["y"]],
+             y = pol2cart(Distance, Theta, degrees=F)[["x"]])
+
+    CTxy<-as_tibble(CT) %>%
+      mutate(Theta = 2*pi*Azimut/360,
+             x = pol2cart(Distance, Theta, degrees=F)[["y"]],
+             y = pol2cart(Distance, Theta, degrees=F)[["x"]])
+
+    ```
+
+2.  use some features of the "sf" package (reference here) to create a geographical reference for the entities
+
+    ```{r}
+    library(sf)
+    Boundaries_sf <- st_as_sf(Boundariesxy,
+                         coords = c('x', 'y')) %>%
+      st_set_crs("102010") %>%
+      group_by(ID_Line) %>%
+      summarise() %>%
+      ungroup() %>%  # Just in case
+      st_convex_hull()
+
+    CT_sf <- st_as_sf(CTxy,
+                      coords = c('x','y')) %>%
+      st_set_crs("102010") %>%
+      st_convex_hull()
+    ```
+
+3.  intersect the Lines that defines the boundary with the limit of the circle (Sampling Unit or UE)
+
+4.  <div>
+
+    ```{r}
+    #We define the centre of the circle 
+    Point<- data.frame(
+      Plot = c("A"),
+      x = c(0),
+      y = c(0))
+    #We convert the UE center in a spatial object using a CRS in meters 
+    Point_sf <- st_as_sf(Point,
+                         coords = c('x', 'y')) %>%
+      st_set_crs("102010") %>%
+      st_convex_hull()
+    #We create the circle as Spatial Object
+    Circle_st_18<-st_buffer(Point_sf,18)
+
+    Boundaries_sf <- st_as_sf(Boundariesxy,
+                              coords = c('x', 'y')) %>%
+      st_set_crs("102010") %>%
+      group_by(UE, ID_Line) %>%
+      summarise() %>%
+      ungroup() %>%  # Just in case
+      st_convex_hull()
+
+    CT_sf <- st_as_sf(CTxy,
+                      coords = c('x','y')) %>%
+      st_set_crs("102010") %>%
+      st_convex_hull()
+
+    ```
+
+    </div>
+
+    The each area needs to become an entity, we need to split the UE in different areas
+
+    ```{r}
+    #rev
+    library(lwgeom)
+    CT_123<-Boundaries_sf[which(Boundaries_sf$UE==123),]
+
+    CT_Split_123<-st_split(Circle_st_18,CT_123)
+    CT_Split_123$UE<-123
+    CT_sf_123<-CT_sf[which(CT_sf$UE==123),]
+
+
+
+    ```
+
+5.  We assign to each surface the CT name
+
+    ```{r}
+    Poly_123 <- (CT_Split_123 %>% 
+                            st_collection_extract(c("POLYGON")))
+
+    Poly_123$CT <- apply(st_intersects(CT_sf_123, CT_Split_123, sparse = FALSE), 2, function(col) {CT_sf_123[which(col), ]$CT})
+
+    ```
+
+6.  We finally put everything i a graphic (for the samplin unit 123 only, you can do the other ones as an exercise)
+
+    ```{r}
+    CT_sf_123$Area<-st_area(Poly_123)
+    ggplot(Circle_st_18) + 
+      xlim(-22,22)+
+      ylim(-22,22)+
+      #this is to make the grafic square
+      theme(aspect.ratio = 1)+
+      #adding the circle
+      # geom_circle(aes(x0=0, y0=0, r = 18), alpha=0.05, fill="yellow", linetype="dotted",size=0.5,inherit.aes = FALSE)+
+      # geom_circle(aes(x0=0, y0=0, r = 6), alpha=0.05, fill="grey", linetype="dashed",size=0.5,inherit.aes = FALSE)+
+      # #plotting the points
+      # geom_point(aes(size=DBH, fill=factor(Specie)),shape =21,alpha = 0.7)
+      geom_sf(alpha=0.4, fill="yellow", linetype="dotted",size=1,inherit.aes = FALSE)+
+      geom_sf(data=CT_123)+
+      geom_sf(data=Poly_123, alpha= 1
+              , aes(fill=CT))+
+      geom_point(aes(x = xd, y = yd, size=DBH, fill=factor(Specie)), data = Trees[which(Trees$UE==123),],shape =21,alpha = 0.7)
+
+    ```
